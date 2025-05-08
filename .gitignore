@@ -1,0 +1,21 @@
+# Email: realyoavperetz@gmail.com
+# Ignore compiled object files and executables
+*.o
+*.obj
+*.out
+*.exe
+Main
+tests.out
+
+
+# Editor / IDE files
+.vscode/
+
+# Mac OS metadata
+.DS_Store
+
+# Valgrind reports
+vgcore.*
+
+# Logs & other
+*.log
