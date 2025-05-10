@@ -33,6 +33,10 @@ public:
     void add_player(Player* p);
     void eliminate(Player* p);
 
+    // under the public section of class Game
+    [[nodiscard]] const std::vector<Player*>& playerObjects() const noexcept {
+    return _players;
+}
     // Turn control
     [[nodiscard]] std::string turn() const;
     [[nodiscard]] std::vector<std::string> players() const;
