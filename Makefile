@@ -8,6 +8,7 @@ Main:
 	    -lsfml-graphics -lsfml-window -lsfml-system \
 	    -o Main
 	time ./Main
+	$(MAKE) clean
 
 test:
 	g++ -std=c++20 -Wall -Wextra -pedantic \

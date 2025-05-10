@@ -137,6 +137,17 @@ void Game::block_arrest(Player* target) {
 bool Game::is_arrest_blocked(Player* p) const {
     return _arrest_blocked.find(p) != _arrest_blocked.end();
 }
+// ───────────────── Sanction-block helpers ─────────────────
+
+void Game::block_sanction(Player* target) {
+    if (target) {
+        _sanction_blocked.insert(target);
+    }
+}
+
+bool Game::is_sanctioned(Player* p) const {
+    return _sanction_blocked.find(p) != _sanction_blocked.end();
+}
 
 // ───────────────── Coup cancel helper ─────────────────
 

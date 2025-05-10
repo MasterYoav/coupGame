@@ -12,7 +12,8 @@ public:
      * Construct a Governor and register it inside the game.
      */
     Governor(Game& game, const std::string& name);
-
+    
+    std::string role() const override { return "Governor"; }
     /**
      * Collect 3 coins instead of 2.
      */

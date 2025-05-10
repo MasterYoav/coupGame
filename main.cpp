@@ -9,19 +9,8 @@
 #include "gui/GameWindow.hpp"
 
 int main() {
-    using namespace coup;
-
-    Game game;
-
-    Governor governor(game, "Moshe");
-    Spy      spy     (game, "Yossi");
-    Baron    baron   (game, "Meirav");
-    General  general (game, "Reut");
-    Judge    judge   (game, "Gilad");
-
-    // Launch the SFML window (blocks until closed)
+    coup::Game game;
     coup_gui::GameWindow win(game);
     win.run();
-
     return 0;
 }

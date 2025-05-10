@@ -10,7 +10,7 @@ class Spy : public Player {
 public:
     /** Construct a Spy and register it in the game. */
     Spy(Game& game, const std::string& name);
-
+    std::string role() const override { return "Spy"; }
     /**
      * Inspect target player's coin count.
      * Does not count as a turn and costs 0 coins.

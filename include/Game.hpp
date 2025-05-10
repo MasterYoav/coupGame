@@ -1,6 +1,6 @@
+// File: include/Game.hpp
 #pragma once
 // Email: realyoavperetz@gmail.com
-// Core game engine – manages players, turns, bank, action log, and special blocks (English-only comments).
 
 #include <vector>
 #include <string>
@@ -8,60 +8,58 @@
 #include <unordered_set>
 
 #include "exceptions.hpp"
-#include "Action.hpp"
+#include "Action.hpp"       // defines ActionRecord, ActionType
+class Player;              // forward declaration
 
 namespace coup {
 
-class Player; // forward declaration
-
 class Game {
 private:
-    // Active players in join order
-    std::vector<Player*>   _players;
-    // Index of player whose turn it is now
-    std::size_t            _turn_idx = 0;
-    // Coins in the central bank
-    int                    _bank     = 50;
+    std::vector<Player*>        _players;
+    std::size_t                 _turn_idx = 0;
+    int                         _bank     = 0;
 
-    // Action log – tracks block‑able actions
-    std::vector<ActionRecord> _log;
-
-    // Set of players not allowed to use arrest on their next turn
+    std::vector<ActionRecord>   _log;
     std::unordered_set<Player*> _arrest_blocked;
+    std::unordered_set<Player*> _sanction_blocked;
 
 public:
-    Game()                          = default;
-    Game(const Game&)               = delete;
-    Game& operator=(const Game&)    = delete;
-    ~Game()                         = default;
+    Game()                       = default;
+    Game(const Game&)            = delete;
+    Game& operator=(const Game&) = delete;
+    ~Game()                      = default;
 
-    // ───────── Player management ─────────
+    // Player management
     void add_player(Player* p);
     void eliminate(Player* p);
 
-    // ───────── Turn control ─────────
+    // Turn control
     [[nodiscard]] std::string turn() const;
     [[nodiscard]] std::vector<std::string> players() const;
     void next_turn();
     void validate_turn(const Player* p) const;
+    // In include/Game.hpp, under Turn control:
+    Player* current_player() const { return _players.empty() ? nullptr : _players[_turn_idx]; }
 
-    // ───────── Winner ─────────
+    // Winner
     [[nodiscard]] std::string winner() const;
 
-    // ───────── Bank access ─────────
+    // Bank
     [[nodiscard]] int& bank() noexcept { return _bank; }
 
-    // ───────── Action log helpers ─────────
+    // Log
     void register_action(Player* actor, ActionType type, Player* target = nullptr);
     ActionRecord* last_action(Player* actor, ActionType type);
     void prune_log();
 
-    // ───────── Arrest‑block helpers ─────────
+    // Blocks
     void block_arrest(Player* target);
     bool is_arrest_blocked(Player* p) const;
 
-    // ───────── Coup cancel helper ─────────
-    /** Cancel the most recent coup against target and restore them to the game. */
+    void block_sanction(Player* target);
+    bool is_sanctioned(Player* p) const;
+
+    // Coup undo
     void cancel_coup(Player* target);
 };
 

@@ -1,15 +1,17 @@
 #pragma once
 // Email: realyoavperetz@gmail.com
-// SFML window for the Coup game – left panel of player stats,
-// center bank circle, bottom row of action buttons.
+// Header for GameWindow: handles both Menu and Playing modes with SFML.
 
 #include <SFML/Graphics.hpp>
 #include <functional>
 #include <vector>
 #include <string>
+#include <optional>
 #include "Game.hpp"
 
 namespace coup_gui {
+
+enum class WindowState { Menu, Playing };
 
 class GameWindow {
 public:
@@ -18,35 +20,47 @@ public:
 
 private:
     // Core game model
-    coup::Game&        _game;
-    // SFML window
-    sf::RenderWindow   _window;
+    coup::Game& _game;
+    // SFML window and assets
+    sf::RenderWindow _window;
+    sf::Font         _font;
 
-    // Shared font
-    sf::Font           _font;
+    WindowState      _state = WindowState::Menu;
 
-    // Left panel: one text entry per player
-    std::vector<sf::Text> _playerTexts;
-    // Center: bank circle + text
-    sf::CircleShape    _bankCircle;
-    sf::Text           _bankText;
-    // Top-right: current turn
-    sf::Text           _turnText;
-
-    // Bottom: action buttons
+    // ─── Menu mode members ───
     struct Button {
         sf::RectangleShape shape;
         sf::Text           label;
         std::function<void()> onClick;
     };
+    std::vector<Button>        _menuButtons;
+    bool                       _showAddDialog = false;
+    std::string                _newPlayerName;
+    sf::Text                   _dialogPrompt;
+    sf::RectangleShape         _dialogBg;
+    std::optional<std::string> _popupMessage;
+    sf::Text                   _popupText;
+    sf::Clock                  _popupClock;
+
+    // ─── Playing mode members ───
+    std::vector<sf::Text> _playerNameTexts;   // Name labels (in red)
+    std::vector<sf::Text> _playerCoinTexts;   // Coin labels (in gold)
+    std::vector<sf::Text> _playerRoleTexts;   // Role labels (in blue)
+
+    sf::Text            _turnText;
+    sf::CircleShape     _bankCircle;
+    sf::Text            _bankText;
     std::vector<Button> _buttons;
 
-    // Helpers
-    void handleEvents();
-    void updateLayout();
-    void draw();
+    // ─── Core methods ───
+    void handleMenuEvents();
+    void drawMenu();
 
-    // Button factory
+    void handlePlayEvents();
+    void updatePlayLayout();
+    void drawPlay();
+
+    void showPopup(const std::string& msg);
     Button makeButton(const std::string& text, float x, float y,
                       std::function<void()> cb);
 };
