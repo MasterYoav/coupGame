@@ -1,58 +1,34 @@
-#pragma once
 // Email: realyoavperetz@gmail.com
-// Header for GameWindow: handles both Menu and Playing modes with SFML.
+// GameWindow.hpp — header for the GUI controller (patched version)
+// * English-only comments
+// * Adds support for target-selection actions (Arrest / Sanction / Coup)
+// * Prevents duplicate roles
 
+#pragma once
 #include <SFML/Graphics.hpp>
-#include <functional>
-#include <vector>
 #include <string>
+#include <vector>
+#include <functional>
 #include <optional>
-#include "Game.hpp"
+
+namespace coup {      class Game;  class Player; }
 
 namespace coup_gui {
-
-enum class WindowState { Menu, Playing };
 
 class GameWindow {
 public:
     explicit GameWindow(coup::Game& game);
-    void run();
+    void run();                                // main event/render loop
 
 private:
-    // Core game model
-    coup::Game& _game;
-    // SFML window and assets
-    sf::RenderWindow _window;
-    sf::Font         _font;
-
-    WindowState      _state = WindowState::Menu;
-
-    // ─── Menu mode members ───
+    // helper struct for simple rectangle buttons
     struct Button {
         sf::RectangleShape shape;
         sf::Text           label;
         std::function<void()> onClick;
     };
-    std::vector<Button>        _menuButtons;
-    bool                       _showAddDialog = false;
-    std::string                _newPlayerName;
-    sf::Text                   _dialogPrompt;
-    sf::RectangleShape         _dialogBg;
-    std::optional<std::string> _popupMessage;
-    sf::Text                   _popupText;
-    sf::Clock                  _popupClock;
 
-    // ─── Playing mode members ───
-    std::vector<sf::Text> _playerNameTexts;   // Name labels (in red)
-    std::vector<sf::Text> _playerCoinTexts;   // Coin labels (in gold)
-    std::vector<sf::Text> _playerRoleTexts;   // Role labels (in blue)
-
-    sf::Text            _turnText;
-    sf::CircleShape     _bankCircle;
-    sf::Text            _bankText;
-    std::vector<Button> _buttons;
-
-    // ─── Core methods ───
+    //----------------------- event / draw helpers -----------------------
     void handleMenuEvents();
     void drawMenu();
 
@@ -60,9 +36,55 @@ private:
     void updatePlayLayout();
     void drawPlay();
 
-    void showPopup(const std::string& msg);
-    Button makeButton(const std::string& text, float x, float y,
+    // action dispatch
+    void onActionClicked(const std::string& act);
+
+    //----------------------- target-dialog helpers ----------------------
+    enum class PendingAct { None, Arrest, Sanction, Coup };
+    void createTargetDialog(PendingAct act);           // build overlay
+    void executePendingAction(coup::Player* target);   // run after click
+
+    //----------------------- UI helpers --------------------------------
+    Button makeButton(const std::string& txt,
+                      float x, float y,
                       std::function<void()> cb);
+    void showPopup(const std::string& msg);
+
+    //----------------------- data --------------------------------------
+    coup::Game& _game;
+
+    sf::RenderWindow _window;
+    sf::Font         _font;
+
+    // --- MENU state ---
+    std::vector<Button> _menuButtons;
+    bool                _showAddDialog{false};
+    sf::RectangleShape  _dialogBg;
+    sf::Text            _dialogPrompt;
+    std::string         _newPlayerName;
+
+    // --- PLAY state ---
+    enum class WindowState { Menu, Playing };
+    WindowState         _state{WindowState::Menu};
+
+    std::vector<Button> _buttons;              // action buttons
+    sf::CircleShape     _bankCircle;
+    sf::Text            _turnText;
+
+    std::vector<sf::Text> _playerNameTexts;
+    std::vector<sf::Text> _playerCoinTexts;
+    std::vector<sf::Text> _playerRoleTexts;
+
+    // --- Popup ---
+    std::optional<std::string> _popupMessage;
+    sf::Clock                  _popupClock;
+    sf::Text                   _popupText;
+
+    // --- Target-selection dialog ---
+    bool                       _showTargetDialog{false};
+    PendingAct                 _pending{PendingAct::None};
+    sf::RectangleShape         _targetBg;
+    std::vector<Button>        _targetButtons;
 };
 
 } // namespace coup_gui
