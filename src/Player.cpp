@@ -32,24 +32,37 @@ Player::Player(Game& game, const std::string& name)
 // ───────── default actions ─────────
 
 void Player::gather() {
-    _game.validate_turn(this);
-    if (_coins >= MANDATORY_COUP_LIMIT) {
-        COUP_THROW("Must coup when holding 10 or more coins");
+    try {
+        _game.validate_turn(this);
+        if (_coins >= MANDATORY_COUP_LIMIT) {
+            COUP_THROW("Must coup when holding 10 or more coins");
+        }
+        if (_game.is_sanctioned(this)) {
+            COUP_THROW("Gather action is blocked by sanction");
+        }
+        gain(1);
+        // log the successful gather
+        _game.register_action(this, ActionType::Gather, nullptr, true);
+
+        // consume extra-action or advance turn
+        if (_extraActionAllowed) {
+            _extraActionAllowed = false;
+        } else {
+            _game.next_turn();
+        }
     }
-    if (_game.is_sanctioned(this)) {
-        COUP_THROW("Gather action is blocked by sanction");
-    }
-    gain(1);
-    // consume extra-action or advance turn
-    if (_extraActionAllowed) {
-        _extraActionAllowed = false;
-    } else {
-        _game.next_turn();
+    catch (const CoupException& ex) {
+       // log the failure, then rethrow
+        _game.register_action(this, ActionType::Gather, nullptr, false);
+        throw;
     }
 }
 
 void Player::tax() {
     _game.validate_turn(this);
+    if (_game.is_tax_blocked(this)) {
+        COUP_THROW("Tax action is blocked by Governor");
+    }
     if (_coins >= MANDATORY_COUP_LIMIT) {
         COUP_THROW("Must coup when holding 10 or more coins");
     }

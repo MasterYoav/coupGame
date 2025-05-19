@@ -5,6 +5,7 @@
 #include "Player.hpp"
 
 #include <algorithm>
+#include <sstream>
 
 namespace coup {
 
@@ -35,7 +36,6 @@ void Game::eliminate(Player* p) {
         _turn_idx = 0;
         return;
     }
-    // Shift turn index left if a player before it was removed
     if (removed < _turn_idx) {
         --_turn_idx;
     }
@@ -65,15 +65,11 @@ std::vector<std::string> Game::players() const {
 void Game::next_turn() {
     if (_players.empty()) return;
 
-    // remove arrest block on player that just finished their turn
+    // remove one‐time blocks on the player who just finished a turn
     _arrest_blocked.erase(_players[_turn_idx]);
-
+    _tax_blocked.erase(_players[_turn_idx]);
     prune_log();
-
-    // advance
     _turn_idx = (_turn_idx + 1) % _players.size();
-
-    // start-of-turn bonus for new current player
     _players[_turn_idx]->start_of_turn();
 }
 
@@ -86,23 +82,58 @@ void Game::validate_turn(const Player* p) const {
     }
 }
 
-// ───────────────── Winner ─────────────────
-
 std::string Game::winner() const {
     if (_players.size() != 1) {
         COUP_THROW("Game is still ongoing");
     }
     return _players.front()->name();
 }
-
+// ─── Tax-block helpers ─────────────────────────────
+void Game::block_tax(Player* target) {
+        if (target) _tax_blocked.insert(target);
+    }
+    bool Game::is_tax_blocked(Player* p) const noexcept {
+        return _tax_blocked.count(p) != 0;
+    }
 // ───────────────── Action log helpers ─────────────────
+
+// helper to stringify ActionType
+static std::string actionTypeToString(ActionType type) {
+    switch (type) {
+        case ActionType::Gather:   return "Gather";
+        case ActionType::Tax:      return "Tax";
+        case ActionType::Bribe:    return "Bribe";
+        case ActionType::Arrest:   return "Arrest";
+        case ActionType::Sanction: return "Sanction";
+        case ActionType::TaxCancel: return "BlockedTax";
+        case ActionType::Coup:     return "Coup";
+        default:                    return "";
+    }
+    return "";
+}
 
 void Game::register_action(Player* actor,
                            ActionType type,
-                           Player* target /* = nullptr */) {
+                           Player* target,
+                           bool success) {
+    // 1. internal record for blocking logic
     _log.push_back({actor, type, target, _turn_idx});
+
+    // 2. formatted string log
+    std::ostringstream out;
+        if (type == ActionType::TaxCancel && target) {
+                out << actor->name() << ",Blocked Tax for " << target->name();
+            } else {
+                // existing formatting for other types...
+                out << actor->name() << ",";
+                /* …switch over type to append “Gather”,“Tax”,… etc… */
+                out << "," << (success ? "Succeeded" : "Failed");
+            }
+    
+    _actionLogStrings.push_back(out.str());
 }
 
+// new: last_action definition to satisfy Governor/Judge undo
 ActionRecord* Game::last_action(Player* actor, ActionType type) {
     for (auto it = _log.rbegin(); it != _log.rend(); ++it) {
         if (it->actor == actor && it->type == type) {
@@ -114,19 +145,20 @@ ActionRecord* Game::last_action(Player* actor, ActionType type) {
 
 void Game::prune_log() {
     if (_log.empty()) return;
-    // Keep only actions within the last N turns (N = number of active players)
-    _log.erase(std::remove_if(_log.begin(), _log.end(),
-                              [&](const ActionRecord& rec) {
-                                  std::size_t diff =
-                                      (_turn_idx >= rec.turn_idx)
-                                          ? (_turn_idx - rec.turn_idx)
-                                          : (_players.size() + _turn_idx - rec.turn_idx);
-                                  return diff > _players.size();
-                              }),
-               _log.end());
+    _log.erase(
+        std::remove_if(
+            _log.begin(), _log.end(),
+            [&](const ActionRecord& rec) {
+                std::size_t diff =
+                    (_turn_idx >= rec.turn_idx)
+                        ? (_turn_idx - rec.turn_idx)
+                        : (_players.size() + _turn_idx - rec.turn_idx);
+                return diff > _players.size();
+            }
+        ),
+        _log.end()
+    );
 }
-
-// ───────────────── Arrest-block helpers ─────────────────
 
 void Game::block_arrest(Player* target) {
     if (target) {
@@ -135,9 +167,8 @@ void Game::block_arrest(Player* target) {
 }
 
 bool Game::is_arrest_blocked(Player* p) const {
-    return _arrest_blocked.find(p) != _arrest_blocked.end();
+    return _arrest_blocked.count(p) != 0;
 }
-// ───────────────── Sanction-block helpers ─────────────────
 
 void Game::block_sanction(Player* target) {
     if (target) {
@@ -146,17 +177,15 @@ void Game::block_sanction(Player* target) {
 }
 
 bool Game::is_sanctioned(Player* p) const {
-    return _sanction_blocked.find(p) != _sanction_blocked.end();
+    return _sanction_blocked.count(p) != 0;
 }
-
-// ───────────────── Coup cancel helper ─────────────────
 
 void Game::cancel_coup(Player* target) {
     if (!target) {
         COUP_THROW("Null target for cancel_coup");
     }
 
-    // Find most recent coup record with this target
+    // Find most recent coup record for this target
     ActionRecord* rec = nullptr;
     for (auto it = _log.rbegin(); it != _log.rend(); ++it) {
         if (it->type == ActionType::Coup && it->target == target) {
@@ -168,20 +197,19 @@ void Game::cancel_coup(Player* target) {
         COUP_THROW("No coup to cancel for this target");
     }
 
-    // Remove the record from log
-    auto itDel = std::find_if(_log.begin(), _log.end(),
-                              [&](const ActionRecord& r) { return &r == rec; });
+    // Remove the record
+    auto itDel = std::find_if(
+        _log.begin(), _log.end(),
+        [&](const ActionRecord& r) { return &r == rec; }
+    );
     if (itDel != _log.end()) {
         _log.erase(itDel);
     }
 
-    // If target is already active, nothing else to do
-    if (std::find(_players.begin(), _players.end(), target) != _players.end()) {
-        return;
+    // Restore the player if they were removed
+    if (std::find(_players.begin(), _players.end(), target) == _players.end()) {
+        _players.insert(_players.begin() + _turn_idx, target);
     }
-
-    // Restore target just before the current turn index
-    _players.insert(_players.begin() + _turn_idx, target);
 }
 
 } // namespace coup

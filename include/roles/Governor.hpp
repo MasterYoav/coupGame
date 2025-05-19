@@ -24,5 +24,6 @@ public:
      * @throws CoupException if action_owner did not perform tax recently.
      */
     void undo(Player& action_owner) override;
+    void block_tax(Player& target);
 };
 }

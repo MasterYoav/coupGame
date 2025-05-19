@@ -13,18 +13,15 @@ void Governor::tax() {
     if (_coins >= MANDATORY_COUP_LIMIT) {
         COUP_THROW("Must coup when holding 10 or more coins");
     }
-    if (_game.bank() < 3) {
-        COUP_THROW("Bank has less than 3 coins");
-    }
-
-    _game.register_action(this, ActionType::Tax);          // ← רישום בלוג
+    _game.register_action(this, ActionType::Tax);          
     gain(3);
     _game.bank() -= 3;
+    _game.register_action(this, ActionType::Tax, nullptr, true);
     _game.next_turn();
 }
 
 void Governor::undo(Player& action_owner) {
-    // ביטול מס: מחפש פעולה אחרונה מסוג Tax של action_owner
+   
     auto rec = _game.last_action(&action_owner, ActionType::Tax);
     if (!rec) {
         COUP_THROW("No tax action to undo");
@@ -33,5 +30,15 @@ void Governor::undo(Player& action_owner) {
     action_owner.spend(2);
     _game.bank() += 2;
 }
-
+void Governor::block_tax(Player& target) {
+    _game.validate_turn(this);
+    if (_game.is_tax_blocked(&target)) {
+        COUP_THROW("Already blocked tax for " + target.name());
+    }
+    // Register the block
+    _game.block_tax(&target);
+    _game.register_action(this, ActionType::TaxCancel, &target, true);
+    // Advance turn
+    _game.next_turn();
+}
 } // namespace coup

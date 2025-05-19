@@ -10,9 +10,15 @@ Merchant::Merchant(Game& game, const std::string& name)
 
 // start-of-turn bonus: +1 coin if holding ≥3 and bank has funds
 void Merchant::start_of_turn() {
-    if (_coins >= 3 && _game.bank() > 0) {
+    Player::start_of_turn();
+
+    // rule: if you begin turn with ≥3 coins, you get +1 free
+    if (this->coins() >= 3) {
+        // grant the coin
         gain(1);
-        _game.bank() -= 1;
+
+        // record it as a Gather‐style action for the log
+        _game.register_action(this, ActionType::Gather, nullptr, true);
     }
 }
 

@@ -17,6 +17,7 @@ enum class ActionType {
     Bribe,
     Arrest,
     Sanction,
+    TaxCancel,
     Coup
 };
 

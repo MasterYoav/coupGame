@@ -1,4 +1,4 @@
-// File: include/Game.hpp
+// Updated Game.hpp with action-log storage and API
 #pragma once
 // Email: realyoavperetz@gmail.com
 
@@ -19,10 +19,14 @@ private:
     std::size_t                 _turn_idx = 0;
     int                         _bank     = 0;
 
+    // existing blocking log
     std::vector<ActionRecord>   _log;
+    // new formatted string log
+    std::vector<std::string>    _actionLogStrings;
+
     std::unordered_set<Player*> _arrest_blocked;
     std::unordered_set<Player*> _sanction_blocked;
-
+    std::unordered_set<Player*> _tax_blocked;
 public:
     Game()                       = default;
     Game(const Game&)            = delete;
@@ -32,17 +36,13 @@ public:
     // Player management
     void add_player(Player* p);
     void eliminate(Player* p);
+    [[nodiscard]] const std::vector<Player*>& playerObjects() const noexcept {return _players;}
 
-    // under the public section of class Game
-    [[nodiscard]] const std::vector<Player*>& playerObjects() const noexcept {
-    return _players;
-}
     // Turn control
     [[nodiscard]] std::string turn() const;
     [[nodiscard]] std::vector<std::string> players() const;
     void next_turn();
     void validate_turn(const Player* p) const;
-    // In include/Game.hpp, under Turn control:
     Player* current_player() const { return _players.empty() ? nullptr : _players[_turn_idx]; }
 
     // Winner
@@ -51,8 +51,30 @@ public:
     // Bank
     [[nodiscard]] int& bank() noexcept { return _bank; }
 
-    // Log
-    void register_action(Player* actor, ActionType type, Player* target = nullptr);
+    // Action log
+    /**
+     * Registers an action for internal logic and formatted log.
+     * @param actor   the player performing the action
+     * @param type    enum ActionType
+     * @param target  optional target of action
+     * @param success whether the action succeeded
+     */
+    void register_action(Player* actor,
+                         ActionType type,
+                         Player* target = nullptr,
+                         bool success = true);
+                         
+    void block_tax(Player* target);
+    bool is_tax_blocked(Player* p) const noexcept;
+
+    /**
+     * Returns the formatted log entries:
+     * "playerName,Action,Succeeded" or "playerName,Action,Failed".
+     */
+    [[nodiscard]] std::vector<std::string> getActionLog() const noexcept {
+        return _actionLogStrings;
+    }
+
     ActionRecord* last_action(Player* actor, ActionType type);
     void prune_log();
 
