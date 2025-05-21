@@ -17,7 +17,7 @@ public:
      * Pay 5 coins to defend a player (including self) from a coup.
      * If used successfully, the attacker loses the 7 coins spent.
      */
-    void defend_coup(Player& target);
+    void block_coup(Player& target);
 
     /** Refund 1 coin when this General is arrested. */
     void on_arrest_refund();

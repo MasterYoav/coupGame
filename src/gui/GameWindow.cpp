@@ -16,21 +16,32 @@
 using namespace coup_gui;
 using namespace coup;
 
-// Layout constants
-static constexpr unsigned WIN_W    = 800;
-static constexpr unsigned WIN_H    = 600;
-static constexpr unsigned LOG_H    = 200;
-static constexpr float MENU_H      = 60.f;
-static constexpr float PANEL_W     = 250.f;
-static constexpr float PANEL_PAD   = 15.f;
-static constexpr float BUTTON_W    = 100.f;
-static constexpr float BUTTON_H    = 40.f;
-static constexpr float BUTTON_SP   = 20.f;
-static const    sf::Color PANEL_BG (40, 40, 40);
-static const    sf::Color BUTTON_BG(80, 80, 200);
-static const    sf::Color TEXT_COLOR(230,230,230);
-static const    sf::Color DIALOG_BG(50,50,60,230);\
+// ─────────────── Layout constants ───────────────
 
+// Window dimensions
+static constexpr unsigned WIN_W    = 1000;   // total window width
+static constexpr unsigned WIN_H    = 800;   // total window height
+
+// Log sub-window height (appears beneath the main window when playing)
+static constexpr unsigned LOG_H    = 200;
+
+// Header bar
+static constexpr float MENU_H      = 60.f;  // height of the top menu/title bar
+
+// Side panel (player list) dimensions
+static constexpr float PANEL_W     = 300.f; // width of the left side panel
+static constexpr float PANEL_PAD   = 15.f;  // padding inside panels and dialogs
+
+// Action button dimensions & spacing
+static constexpr float BUTTON_W    = 100.f; // width of each action button
+static constexpr float BUTTON_H    = 40.f;  // height of each action button
+static constexpr float BUTTON_SP   = 20.f;  // horizontal spacing between buttons
+
+// Colors
+static const sf::Color PANEL_BG    (120, 119, 119);   // side‐panel background
+static const sf::Color BUTTON_BG   (80,  80, 200);   // action‐button background
+static const sf::Color TEXT_COLOR  (230,230,230);   // general text color
+static const sf::Color DIALOG_BG   (50,  50,  60, 230); // modal dialog background (semi‐transparent)
 enum class PendingAct { None, Arrest, Sanction, Coup, BlockTax};
 
 // ─────────────────── ctor ───────────────────
@@ -234,6 +245,18 @@ void GameWindow::handleMenuEvents() {
 void GameWindow::handlePlayEvents() {
     sf::Event e;
     while (_window.pollEvent(e)) {
+        if (_showBlockCoupDialog) {
+            if (e.type == sf::Event::MouseButtonPressed) {
+                sf::Vector2f m(e.mouseButton.x, e.mouseButton.y);
+                for (auto& b : _blockCoupButtons) {
+                    if (b.shape.getGlobalBounds().contains(m)) {
+                        b.onClick();
+                        break;
+                    }
+                }
+            }
+            continue;  // do not process any other clicks until choice made
+        }
         if (e.type == sf::Event::Closed) _window.close();
         else if (_showTargetDialog && e.type==sf::Event::MouseButtonPressed) {
             sf::Vector2f m(e.mouseButton.x, e.mouseButton.y);
@@ -260,7 +283,12 @@ void GameWindow::onActionClicked(const std::string& act) {
         else if (act == "Sanction")   { createTargetDialog(PendingAct::Sanction); return; }
         else if (act == "Coup")       { createTargetDialog(PendingAct::Coup); return; }
         else if (act == "Block Tax") { createTargetDialog(PendingAct::BlockTax); return; }
-
+        else if (act == "Block Arrest") {createTargetDialog(PendingAct::BlockArrest);return;}
+        else if (act == "Show Coins") {_showSpyBalances = true;return;}
+        else if (act == "Hide Coins") {_showSpyBalances = false;return;}
+        else if (act == "Invest") {static_cast<Baron*>(cp)->invest();showPopup(cp->name() + " invested 3 coins for 6");return;}
+        else if (act == "BlockCoup"){createTargetDialog(PendingAct::BlockCoup);return;}
+        
         // after any non-target action, show popup and advance turn
         showPopup(cp->name() + " performed " + act);
     }
@@ -296,6 +324,59 @@ void GameWindow::createTargetDialog(PendingAct act) {
         y += entryH;
     }
 }
+void GameWindow::createBlockCoupDialog(coup::Player* general) {
+    _blockCoupButtons.clear();
+
+    // compute y position of that general in the side‐panel
+    int idx = 0;
+    for (auto* p : _game.playerObjects()) {
+        if (p == general) break;
+        ++idx;
+    }
+    float y = MENU_H + PANEL_PAD + idx * 50.f;
+
+    // “Block Coup” (red button)
+    {
+        auto btn = makeButton(
+            "Block Coup",
+            PANEL_PAD + PANEL_W + 20.f,
+            y,
+            [this, general]() {
+                // General pays 5
+                static_cast<General*>(general)->spend(5);
+                _game.bank() += 5;
+                // Attacker still loses 7
+                _pendingCoupAttacker->spend(7);
+                _game.bank() += 7;
+
+                showPopup(general->name() + " blocked the coup");
+                _showBlockCoupDialog = false;
+                _pending = PendingAct::None;
+            }
+        );
+        btn.shape.setFillColor(sf::Color(200,  0,  0));
+        _blockCoupButtons.push_back(std::move(btn));
+    }
+
+    // “Continue” (green button)
+    {
+        auto btn = makeButton(
+            "Continue",
+            PANEL_PAD + PANEL_W + 20.f + BUTTON_W + BUTTON_SP,
+            y,
+            [this]() {
+                _pendingCoupAttacker->coup(*_pendingCoupTarget);
+                showPopup(_pendingCoupAttacker->name()
+                          + " performed a coup on "
+                          + _pendingCoupTarget->name());
+                _showBlockCoupDialog = false;
+                _pending = PendingAct::None;
+            }
+        );
+        btn.shape.setFillColor(sf::Color(  0,200,  0));
+        _blockCoupButtons.push_back(std::move(btn));
+    }
+}
 void GameWindow::executePendingAction(coup::Player* target) {
     try {
         auto* cp = _game.current_player(); if (!cp) return;
@@ -308,15 +389,40 @@ void GameWindow::executePendingAction(coup::Player* target) {
                 cp->sanction(*target);
                 showPopup(cp->name() + " sanctioned " + target->name());
                 break;
-            case PendingAct::Coup:
-                cp->coup(*target);
-                showPopup(cp->name() + " performed a coup on " + target->name());
-                break;
+                case PendingAct::Coup: {
+                    // store attacker/target
+                    _pendingCoupAttacker = cp;
+                    _pendingCoupTarget   = target;
+                
+                    // find any General with ≥5 coins
+                    for (coup::Player* p : _game.playerObjects()) {
+                        if (p->role() == "General" && p->coins() >= 5) {
+                            // build the “Block Coup / Continue” UI next to that general
+                            createBlockCoupDialog(p);
+                            _showBlockCoupDialog = true;
+                            return;         // wait for their choice
+                        }
+                    }
+                    // no General can block → do it immediately
+                    cp->coup(*target);
+                    showPopup(cp->name() + " performed a coup on " + target->name());
+                    break;
+                }
             case PendingAct::BlockTax:
-            // Governor-specific tax block
-            static_cast<Governor*>(cp)->block_tax(*target);
-            showPopup(cp->name() + " blocked Tax for " + target->name());
-            break;
+                // Governor-specific tax block
+                static_cast<Governor*>(cp)->block_tax(*target);
+                showPopup(cp->name() + " blocked Tax for " + target->name());
+                break;
+            case PendingAct::BlockArrest:
+                // Spy’s one-time Arrest block
+                static_cast<Spy*>(cp)->block_arrest(*target);
+                showPopup(cp->name() + " blocked Arrest for " + target->name());
+                break;
+            case PendingAct::BlockCoup:
+                // cast and invoke the General’s block_coup method
+                static_cast<General*>(cp)->block_coup(*target);
+                showPopup(cp->name() + " blocked Coup on " + target->name());
+                break;
             default:
                 break;
         }
@@ -328,6 +434,7 @@ void GameWindow::executePendingAction(coup::Player* target) {
 }
 
 
+// Rebuild buttons dynamically each turn based on role
 void GameWindow::updatePlayLayout() {
     _playerNameTexts.clear();
     _playerCoinTexts.clear();
@@ -337,25 +444,35 @@ void GameWindow::updatePlayLayout() {
     float y = MENU_H + PANEL_PAD;
     coup::Player* current = _game.current_player();
     for (auto* p : _game.playerObjects()) {
-        bool isCurrent = (p == current);
-        sf::Text name(p->name(), _font, 18);
-        name.setFillColor(isCurrent ? sf::Color::Yellow : sf::Color::White);
-        name.setStyle(isCurrent ? sf::Text::Bold : sf::Text::Regular);
-        name.setPosition(PANEL_PAD, y);
-        _playerNameTexts.push_back(name);
+    bool isCurrent = (p == current);
 
-        sf::Text coins(std::to_string(p->coins()), _font, 18);
-        coins.setFillColor(sf::Color(212,175,55));
-        coins.setPosition(PANEL_PAD+120.f, y);
-        _playerCoinTexts.push_back(coins);
+    // Player name
+    sf::Text name(p->name(), _font, 18);
+    name.setFillColor(isCurrent ? sf::Color::Yellow : sf::Color::White);
+    name.setStyle(isCurrent ? sf::Text::Bold : sf::Text::Regular);
+    name.setPosition(PANEL_PAD, y);
+    _playerNameTexts.push_back(name);
 
-        sf::Text role(isCurrent ? p->role() : "", _font, 18);
-        role.setFillColor(sf::Color::Blue);
-        role.setPosition(PANEL_PAD+200.f, y);
-        _playerRoleTexts.push_back(role);
+    // Player role
+    sf::Text role(p->role(), _font, 18);
+    role.setFillColor(sf::Color::Blue);
+    role.setPosition(PANEL_PAD + 200.f, y);
+    _playerRoleTexts.push_back(role);
 
-        y += 50.f;
+
+    // Player coins: show only for current player, or when Spy has revealed
+    std::string coinStr;
+    if (isCurrent || (current->role() == "Spy" && _showSpyBalances)) {
+        coinStr = std::to_string(p->coins());
     }
+    sf::Text coins(coinStr, _font, 18);
+    coins.setFillColor(sf::Color(212,175,55));
+    coins.setPosition(PANEL_PAD + 120.f, y);
+    _playerCoinTexts.push_back(coins);
+
+    
+    y += 50.f;
+}
     _turnText.setFont(_font);
     _turnText.setString("Turn: " + _game.turn());
     _turnText.setPosition(
@@ -368,7 +485,8 @@ void GameWindow::updatePlayLayout() {
     if (current) {
         std::vector<std::string> acts = {"Gather","Tax","Bribe","Arrest","Sanction","Coup"};
         if (current->role() == "Governor") acts.push_back("Block Tax");
-
+        if (current->role() == "Spy"){acts.push_back("Block Arrest");acts.push_back(_showSpyBalances ? "Hide Coins" : "Show Coins");}
+        if (current->role() == "Baron")    acts.push_back("Invest");
         float totalW = acts.size()*BUTTON_W + (acts.size()-1)*BUTTON_SP;
         float startX = (WIN_W - totalW) / 2.f;
         for (size_t i = 0; i < acts.size(); ++i) {
@@ -396,7 +514,34 @@ void GameWindow::drawPlay() {
     if (_showTargetDialog) {
         _window.draw(_targetBg);
         for (auto& b:_targetButtons) { _window.draw(b.shape); _window.draw(b.label); }
+    }\
+    // draw any popup message (like errors)
+if (_popupMessage) {
+    if (_popupClock.getElapsedTime().asSeconds() < 2.f) {
+        _popupText.setString(*_popupMessage);
+        // compute text width
+        float textW = _popupText.getLocalBounds().width;
+        // play‐area starts at PANEL_W and runs to WIN_W
+        float playX = PANEL_W;
+        float playW = WIN_W - PANEL_W;
+        // center horizontally in play‐area
+        float x = playX + (playW - textW) / 2.f;
+        // place vertically just below the bank circle
+        float y = MENU_H + PANEL_PAD + _bankCircle.getRadius()*2 + PANEL_PAD;
+        _popupText.setPosition(x, y);
+        _window.draw(_popupText);
+    } else {
+        _popupMessage.reset();
     }
+}
+if (_showBlockCoupDialog) {
+    for (auto& b : _blockCoupButtons) {
+        _window.draw(b.shape);
+        _window.draw(b.label);
+    }
+    _window.display();   // redraw once with the block/continue overlay
+    return;              // skip the rest so the game doesn’t advance
+}
     _window.display();
 }
 

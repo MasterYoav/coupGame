@@ -18,7 +18,9 @@ enum class ActionType {
     Arrest,
     Sanction,
     TaxCancel,
-    Coup
+    Coup,
+    Invest,
+    BlockCoup
 };
 
 /**

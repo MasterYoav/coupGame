@@ -22,7 +22,7 @@ public:
      * Prevent target from using arrest on their next turn.
      * This helper currently marks a flag inside Game (TODO).
      */
-    void disable_arrest(Player& target);
+    void block_arrest(Player& target);
 };
 
 }

@@ -12,7 +12,7 @@ int Spy::inspect(const Player& target) const noexcept {
     return target.coins();
 }
 
-void Spy::disable_arrest(Player& target) {
+void Spy::block_arrest(Player& target) {
     _game.block_arrest(&target);
 }
 

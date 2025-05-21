@@ -9,18 +9,20 @@ namespace coup {
 
 General::General(Game& game, const std::string& name) : Player(game, name) {}
 
-void General::defend_coup(Player& target) {
-    /*
-     * Pay 5 coins to cancel (block) the most recent coup against `target`.
-     * The attacker still loses the 7 coins they spent; the target is restored
-     * to the active players list (via Game::cancel_coup).
-     *
-     * This ability can be invoked off-turn, so we do NOT call validate_turn().
-     */
+void General::block_coup(Player& target) {
+    _game.validate_turn(this);
+    if (_coins < 5) {
+        COUP_THROW("Not enough coins to block a coup");
+    }
+    // pay 5 to the bank
     spend(5);
     _game.bank() += 5;
-
+    // undo the coup (restores target & returns their card)
     _game.cancel_coup(&target);
+
+    // record & advance
+    _game.register_action(this, ActionType::BlockCoup, &target, true);
+    _game.next_turn();
 }
 
 void General::on_arrest_refund() {

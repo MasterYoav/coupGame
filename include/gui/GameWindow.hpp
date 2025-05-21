@@ -35,7 +35,7 @@ private:
     void onActionClicked(const std::string& act);
 
     // Target dialog
-    enum class PendingAct { None, Arrest, Sanction, Coup, BlockTax };
+    enum class PendingAct { None, Arrest, Sanction, Coup, BlockTax, BlockArrest,BlockCoup};
     void createTargetDialog(PendingAct act);
     void executePendingAction(coup::Player* target);
 
@@ -73,17 +73,25 @@ private:
     sf::Clock                  _popupClock;
     sf::Text                   _popupText;
 
-    // Target-dialog
-    bool                       _showTargetDialog{false};
-    PendingAct                 _pending{PendingAct::None};
-    sf::RectangleShape         _targetBg;
-    std::vector<Button>        _targetButtons;
+    // --- Target-selection dialog ---
+    bool    _showTargetDialog{false};
+    bool    _showSpyBalances{false};    // Spy special: when true, show every player’s coin count
+    PendingAct _pending{PendingAct::None};
+    sf::RectangleShape _targetBg;
+    std::vector<Button> _targetButtons;
 
     // Winner-dialog
     bool                       _showWinnerDialog{false};
     sf::RectangleShape         _winnerBg;
     sf::Text                   _winnerText;
     std::vector<Button>        _winnerButtons;
+
+    coup::Player*      _pendingCoupAttacker = nullptr;
+    coup::Player*      _pendingCoupTarget   = nullptr;
+    bool               _showBlockCoupDialog = false;
+    std::vector<Button> _blockCoupButtons; 
+    // helper for General’s real-time block-coup prompt
+    void createBlockCoupDialog(coup::Player* general);
 };
 
 } // namespace coup_gui

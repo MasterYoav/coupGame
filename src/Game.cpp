@@ -107,6 +107,8 @@ static std::string actionTypeToString(ActionType type) {
         case ActionType::Sanction: return "Sanction";
         case ActionType::TaxCancel: return "BlockedTax";
         case ActionType::Coup:     return "Coup";
+        case ActionType::Invest:    return "Invest";
+        case ActionType::BlockCoup: return "BlockCoup";
         default:                    return "";
     }
     return "";
@@ -117,19 +119,17 @@ void Game::register_action(Player* actor,
                            Player* target,
                            bool success) {
     // 1. internal record for blocking logic
+    // 1) record for blocking logic
     _log.push_back({actor, type, target, _turn_idx});
 
-    // 2. formatted string log
+    // 2) formatted string for the log window
     std::ostringstream out;
-        if (type == ActionType::TaxCancel && target) {
-                out << actor->name() << ",Blocked Tax for " << target->name();
-            } else {
-                // existing formatting for other types...
-                out << actor->name() << ",";
-                /* …switch over type to append “Gather”,“Tax”,… etc… */
-                out << "," << (success ? "Succeeded" : "Failed");
-            }
-    
+    out << actor->name()           // who acted
+        << "," << actionTypeToString(type);  // what they did
+    if (target) {
+        out << " for " << target->name();     // optional target
+    }
+    out << "," << (success ? "Succeeded" : "Failed");
     _actionLogStrings.push_back(out.str());
 }
 
