@@ -1,5 +1,5 @@
 // Email: realyoavperetz@gmail.com
-// Player.cpp – Implementation of Player with mandatory coup check,
+// Player.cpp – Implementation of Player with mandatory-coup in gather/tax/bribe,
 // bribe extra-action, no-repeat arrest, and sanction-block.
 
 #include "Player.hpp"
@@ -41,103 +41,127 @@ void Player::gather() {
             COUP_THROW("Gather action is blocked by sanction");
         }
         gain(1);
-        // log the successful gather
         _game.register_action(this, ActionType::Gather, nullptr, true);
-
-        // consume extra-action or advance turn
         if (_extraActionAllowed) {
             _extraActionAllowed = false;
         } else {
             _game.next_turn();
         }
-    }
-    catch (const CoupException& ex) {
-       // log the failure, then rethrow
+    } catch (const CoupException&) {
         _game.register_action(this, ActionType::Gather, nullptr, false);
         throw;
     }
 }
 
 void Player::tax() {
-    _game.validate_turn(this);
-    if (_game.is_tax_blocked(this)) {
-        COUP_THROW("Tax action is blocked by Governor");
-    }
-    if (_coins >= MANDATORY_COUP_LIMIT) {
-        COUP_THROW("Must coup when holding 10 or more coins");
-    }
-    if (_game.is_sanctioned(this)) {
-        COUP_THROW("Tax action is blocked by sanction");
-    }
-    _game.register_action(this, ActionType::Tax);
-    gain(2);
-    if (_extraActionAllowed) {
-        _extraActionAllowed = false;
-    } else {
-        _game.next_turn();
+    try {
+        _game.validate_turn(this);
+        if (_coins >= MANDATORY_COUP_LIMIT) {
+            COUP_THROW("Must coup when holding 10 or more coins");
+        }
+        if (_game.is_tax_blocked(this)) {
+            COUP_THROW("Tax action is blocked by Governor");
+        }
+        if (_game.is_sanctioned(this)) {
+            
+            COUP_THROW("Tax action is blocked by sanction");
+        }
+        gain(2);
+        _game.register_action(this, ActionType::Tax, nullptr, true);
+        if (_extraActionAllowed) {
+            _extraActionAllowed = false;
+        } else {
+            _game.next_turn();
+        }
+    } catch (const CoupException&) {
+        _game.register_action(this, ActionType::Tax, nullptr, false);
+        throw;
     }
 }
 
 void Player::bribe() {
-    _game.validate_turn(this);
-    if (_coins >= MANDATORY_COUP_LIMIT) {
-        COUP_THROW("Must coup when holding 10 or more coins");
+    try {
+        _game.validate_turn(this);
+        if (_coins >= MANDATORY_COUP_LIMIT) {
+            COUP_THROW("Must coup when holding 10 or more coins");
+        }
+        if (_game.is_bribe_blocked(this)) {
+            COUP_THROW("Can't bribe – you are blocked");
+        }
+        spend(4);
+        _game.bank() += 4;
+        _extraActionAllowed = true;
+        _game.register_action(this, ActionType::Bribe, nullptr, true);
+        // stay on the same turn (extra‐action)
+    } catch (const CoupException&) {
+        _game.register_action(this, ActionType::Bribe, nullptr, false);
+        throw;
     }
-    spend(4);
-    _game.register_action(this, ActionType::Bribe);
-    _extraActionAllowed = true;
-    // Note: turn advances on the next action
 }
 
 void Player::arrest(Player& target) {
-    _game.validate_turn(this);
-    if (_coins >= MANDATORY_COUP_LIMIT) {
-        COUP_THROW("Must coup when holding 10 or more coins");
-    }
-    if (&target == this) {
-        COUP_THROW("Cannot arrest self");
-    }
-    if (_game.is_arrest_blocked(this)) {
-        COUP_THROW("Arrest action is blocked for this turn");
-    }
-    if (_lastArrestTarget == &target) {
-        COUP_THROW("Cannot arrest same target twice in a row");
-    }
-    if (target.coins() <= 0) {
-        COUP_THROW("Target has no coins to steal");
-    }
-    _game.register_action(this, ActionType::Arrest, &target);
-    target.spend(1);
-    gain(1);
-    target.on_arrested(*this);
-    _lastArrestTarget = &target;
-    if (_extraActionAllowed) {
-        _extraActionAllowed = false;
-    } else {
-        _game.next_turn();
+    try {
+        _game.validate_turn(this);
+        // no mandatory-coup here
+        if (&target == this) {
+            COUP_THROW("Cannot arrest self");
+        }
+        if (_game.is_arrest_blocked(this)) {
+            COUP_THROW("Arrest action is blocked for this turn");
+        }
+        if (_lastArrestTarget == &target) {
+            COUP_THROW("Cannot arrest same target twice in a row");
+        }
+        if (target.coins() <= 0) {
+            COUP_THROW("Target has no coins to steal");
+        }
+        _game.register_action(this, ActionType::Arrest, &target, true);
+        target.spend(1);
+        gain(1);
+        target.on_arrested(*this);
+        _lastArrestTarget = &target;
+        if (_extraActionAllowed) {
+            _extraActionAllowed = false;
+        } else {
+            _game.next_turn();
+        }
+    } catch (const CoupException&) {
+        _game.register_action(this, ActionType::Arrest, &target, false);
+        throw;
     }
 }
 
 void Player::sanction(Player& target) {
-    _game.validate_turn(this);
-    if (_coins >= MANDATORY_COUP_LIMIT) {
-        COUP_THROW("Must coup when holding 10 or more coins");
-    }
-    spend(3);
-    _game.register_action(this, ActionType::Sanction, &target);
-    _game.block_sanction(&target);
-    target.on_sanction(*this);
-    if (_extraActionAllowed) {
-        _extraActionAllowed = false;
-    } else {
-        _game.next_turn();
+    try {
+        _game.validate_turn(this);
+        // no mandatory-coup here
+        // cost 3
+        spend(3);
+        _game.bank() += 3;
+        // extra 1 if target is Judge
+        if (target.role() == "Judge") {
+            spend(1);
+            _game.bank() += 1;
+        }
+        target.on_sanction(*this);
+        _game.register_action(this, ActionType::Sanction, &target, true);
+        _game.block_sanction(&target);
+        if (_extraActionAllowed) {
+            _extraActionAllowed = false;
+        } else {
+            _game.next_turn();
+        }
+    } catch (const CoupException&) {
+        _game.register_action(this, ActionType::Sanction, &target, false);
+        throw;
     }
 }
 
 void Player::coup(Player& target) {
     _game.validate_turn(this);
+    // coup cost is 7, no mandatory-coup check here (this *is* the coup)
     spend(7);
-    _game.register_action(this, ActionType::Coup, &target);
+    _game.register_action(this, ActionType::Coup, &target, true);
     _game.eliminate(&target);
     if (_extraActionAllowed) {
         _extraActionAllowed = false;

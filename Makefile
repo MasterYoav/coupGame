@@ -12,13 +12,13 @@ Main:
 
 test:
 	g++ -std=c++20 -Wall -Wextra -pedantic \
-	    src/*.cpp src/roles/*.cpp tests/*.cpp \
+	    src/*.cpp src/roles/*.cpp tests.cpp \
 	    -Iinclude \
 	    -o tests.out
 	./tests.out
 
 valgrind: Main
-	valgrind --leak-check=full ./Main
+	valgrind --leak-check=full ./Main ./test
 
 clean:
 	rm -f Main tests.out

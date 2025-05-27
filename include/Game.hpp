@@ -27,6 +27,7 @@ private:
     std::unordered_set<Player*> _arrest_blocked;
     std::unordered_set<Player*> _sanction_blocked;
     std::unordered_set<Player*> _tax_blocked;
+    std::unordered_set<Player*> _bribe_blocked;
 public:
     Game()                       = default;
     Game(const Game&)            = delete;
@@ -66,6 +67,8 @@ public:
                          
     void block_tax(Player* target);
     bool is_tax_blocked(Player* p) const noexcept;
+    void block_bribe(Player* target);
+    bool is_bribe_blocked(Player* p) const noexcept;
 
     /**
      * Returns the formatted log entries:
@@ -87,6 +90,8 @@ public:
 
     // Coup undo
     void cancel_coup(Player* target);
+
+    void clear_sanction(Player* p);
 };
 
 } // namespace coup

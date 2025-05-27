@@ -5,17 +5,20 @@
 namespace coup {
 
 Judge::Judge(Game& game, const std::string& name)
-    : Player(game, name) {}
+    : Player(game, name) {_roleName = "Judge";}
 
-void Judge::undo(Player& action_owner) {
-    // look for most recent bribe by action_owner
-    auto rec = _game.last_action(&action_owner, ActionType::Bribe);
-    if (!rec) {
-        COUP_THROW("No bribe action to undo");
+    void Judge::cancel_bribe(Player& target) {
+        _game.validate_turn(this);
+        if (_game.is_bribe_blocked(&target)) {
+            COUP_THROW("Already blocked bribe for " + target.name());
+        }
+        // Register the block
+        _game.block_bribe(&target);
+        // Log it
+        _game.register_action(this, ActionType::BribeCancel, &target, true);
+        // Advance turn
+        _game.next_turn();
     }
-    // simply erase the action so extra move won't occur
-    _game.prune_log();
-}
 
 void Judge::on_sanction(Player& attacker) {
     attacker.spend(1);

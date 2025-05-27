@@ -11,7 +11,7 @@ public:
     /** Construct a General and register it in the game. */
     General(Game& game, const std::string& name);
 
-    std::string role() const override { return "General"; }
+    
 
     /**
      * Pay 5 coins to defend a player (including self) from a coup.

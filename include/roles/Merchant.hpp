@@ -9,7 +9,7 @@ namespace coup {
 class Merchant : public Player {
 public:
     Merchant(Game& game, const std::string& name);
-    std::string role() const override { return "Merchant"; }
+    
     // +1 coin at start of turn if holding ≥3 coins
     void start_of_turn() override;
 

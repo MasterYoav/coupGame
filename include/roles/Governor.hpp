@@ -13,7 +13,7 @@ public:
      */
     Governor(Game& game, const std::string& name);
     
-    std::string role() const override { return "Governor"; }
+    
     /**
      * Collect 3 coins instead of 2.
      */

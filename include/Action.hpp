@@ -20,7 +20,8 @@ enum class ActionType {
     TaxCancel,
     Coup,
     Invest,
-    BlockCoup
+    BlockCoup,
+    BribeCancel
 };
 
 /**

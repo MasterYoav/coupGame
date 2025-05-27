@@ -6,7 +6,7 @@
 
 namespace coup {
 
-Governor::Governor(Game& game, const std::string& name) : Player(game, name) {}
+Governor::Governor(Game& game, const std::string& name) : Player(game, name) {_roleName = "Governor";}
 
 void Governor::tax() {
     _game.validate_turn(this);

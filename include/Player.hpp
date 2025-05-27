@@ -14,7 +14,6 @@ class Player {
 public:
     Player(Game& game, const std::string& name);
     virtual ~Player() = default;
-    virtual std::string role() const = 0;
     // Actions
     virtual void gather();
     virtual void tax();
@@ -37,11 +36,18 @@ public:
     void spend(int amount);
     void gain(int amount) noexcept;
 
+    // override your existing role() to return this
+    virtual std::string role() const { return _roleName;}
+
+    void change_role(const std::string& newRole) {
+        _roleName = newRole;
+    }
+    
 protected:
     std::string _name;
     int         _coins = 0;
     Game&       _game;
-
+    std::string _roleName;    // store the current role name
     bool    _extraActionAllowed = false;
     Player* _lastArrestTarget   = nullptr;
 

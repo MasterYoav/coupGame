@@ -5,8 +5,7 @@
 namespace coup {
 
 Baron::Baron(Game& game, const std::string& name)
-    : Player(game, name) {}
-
+    : Player(game, name) {_roleName = "Baron";}
     void Baron::invest() {
         _game.validate_turn(this);
         if (_coins < 3) {
@@ -14,10 +13,8 @@ Baron::Baron(Game& game, const std::string& name)
         }
         // Pay 3 into the bank
         spend(3);
-        _game.bank() += 3;
         // Gain 6 from the bank
         gain(6);
-        _game.bank() -= 6;
     
         // Record & advance
         _game.register_action(this, ActionType::Invest, nullptr, true);

@@ -68,6 +68,8 @@ void Game::next_turn() {
     // remove one‐time blocks on the player who just finished a turn
     _arrest_blocked.erase(_players[_turn_idx]);
     _tax_blocked.erase(_players[_turn_idx]);
+    _bribe_blocked.erase(_players[_turn_idx]);
+    _sanction_blocked.erase(_players[_turn_idx]);
     prune_log();
     _turn_idx = (_turn_idx + 1) % _players.size();
     _players[_turn_idx]->start_of_turn();
@@ -109,6 +111,7 @@ static std::string actionTypeToString(ActionType type) {
         case ActionType::Coup:     return "Coup";
         case ActionType::Invest:    return "Invest";
         case ActionType::BlockCoup: return "BlockCoup";
+        case ActionType::BribeCancel:   return "BlockBribe";
         default:                    return "";
     }
     return "";
@@ -180,6 +183,7 @@ bool Game::is_sanctioned(Player* p) const {
     return _sanction_blocked.count(p) != 0;
 }
 
+
 void Game::cancel_coup(Player* target) {
     if (!target) {
         COUP_THROW("Null target for cancel_coup");
@@ -210,6 +214,11 @@ void Game::cancel_coup(Player* target) {
     if (std::find(_players.begin(), _players.end(), target) == _players.end()) {
         _players.insert(_players.begin() + _turn_idx, target);
     }
-}
-
+    }
+    void Game::block_bribe(Player* target) {
+    if (target) _bribe_blocked.insert(target);
+    }
+    bool Game::is_bribe_blocked(Player* p) const noexcept {
+    return _bribe_blocked.count(p) != 0;
+    }      
 } // namespace coup

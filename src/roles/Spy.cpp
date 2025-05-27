@@ -6,7 +6,7 @@
 
 namespace coup {
 
-Spy::Spy(Game& game, const std::string& name) : Player(game, name) {}
+Spy::Spy(Game& game, const std::string& name) : Player(game, name) {_roleName = "Spy";}
 
 int Spy::inspect(const Player& target) const noexcept {
     return target.coins();

@@ -35,9 +35,13 @@ private:
     void onActionClicked(const std::string& act);
 
     // Target dialog
-    enum class PendingAct { None, Arrest, Sanction, Coup, BlockTax, BlockArrest,BlockCoup};
+    enum class PendingAct { None,Bribe, Arrest, Sanction, Coup, BlockTax, BlockArrest,BlockCoup,BlockBribe};
     void createTargetDialog(PendingAct act);
     void executePendingAction(coup::Player* target);
+    
+    // Buttons for “Change Role” in the Menu screen
+    std::vector<Button>       _roleButtons;
+    std::vector<coup::Player*> _roleButtonTargets;
 
     // Winner dialog
     void createWinnerDialog(const std::string& winner);
@@ -86,12 +90,20 @@ private:
     sf::Text                   _winnerText;
     std::vector<Button>        _winnerButtons;
 
+   // General’s real-time block-coup prompt
     coup::Player*      _pendingCoupAttacker = nullptr;
     coup::Player*      _pendingCoupTarget   = nullptr;
     bool               _showBlockCoupDialog = false;
     std::vector<Button> _blockCoupButtons; 
-    // helper for General’s real-time block-coup prompt
+    
     void createBlockCoupDialog(coup::Player* general);
+
+    // Judge’s cancel-bribe prompt 
+    coup::Player*      _pendingBribeAttacker  = nullptr;
+    coup::Player*      _pendingBribeTarget    = nullptr;
+    bool               _showBlockBribeDialog  = false;
+    std::vector<Button> _blockBribeButtons;
+    void createBlockBribeDialog(coup::Player* judge);
 };
 
 } // namespace coup_gui

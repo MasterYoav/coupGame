@@ -7,7 +7,7 @@
 
 namespace coup {
 
-General::General(Game& game, const std::string& name) : Player(game, name) {}
+General::General(Game& game, const std::string& name) : Player(game, name) {_roleName = "General";}
 
 void General::block_coup(Player& target) {
     _game.validate_turn(this);

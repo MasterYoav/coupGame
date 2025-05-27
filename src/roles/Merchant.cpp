@@ -6,7 +6,7 @@
 namespace coup {
 
 Merchant::Merchant(Game& game, const std::string& name)
-    : Player(game, name) {}
+    : Player(game, name) {_roleName = "Merchant";}
 
 // start-of-turn bonus: +1 coin if holding ≥3 and bank has funds
 void Merchant::start_of_turn() {
