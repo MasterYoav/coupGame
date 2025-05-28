@@ -6,8 +6,8 @@ A C++ implementation of the popular bluffing card game **Coup**, featuring:
 * **Action logging** and **exception handling** for illegal moves
 * **Unit tests** with [doctest](https://github.com/doctest/doctest)
 * **Memory leak checks** via Valgrind
-* **Optional GUI** version (using SFML)
-* **Headless simulation** for automated validation (no GUI)
+* **GUI** (using SFML)
+* **Headless simulation** GUI-Less game simulation for Valgrind Memory Checks
 
 ---
 
@@ -26,7 +26,7 @@ A C++ implementation of the popular bluffing card game **Coup**, featuring:
 
 ## Game Rules
 
-Players take turns performing one of several actions, aiming to be the last player remaining. Each player holds a secret role card granting special abilities.
+Players take turns performing one of several actions, aiming to be the last player remaining. Each player holds a role card granting special abilities.
 
 ### Common Actions (available to all roles)
 
