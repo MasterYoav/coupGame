@@ -60,12 +60,14 @@ CoupGame/
 │   ├── exceptions.hpp      # Custom exception types
 │   ├── Action.hpp          # Action type enum
 │   └── roles/              # Role-specific headers
-│       ├── Governor.hpp
-│       ├── Spy.hpp
-│       ├── Baron.hpp
-│       ├── General.hpp
-│       ├── Judge.hpp
-│       └── Merchant.hpp
+│   |   ├── Governor.hpp
+│   |   ├── Spy.hpp
+│   |   ├── Baron.hpp
+│   |   ├── General.hpp
+│   |   ├── Judge.hpp
+│   |   └── Merchant.hpp
+|   └── gui/
+|       └── GameWindow.hpp
 ├── src/
 │   ├── Game.cpp            # Game logic implementation
 │   ├── Player.cpp          # Player base implementation
@@ -77,9 +79,9 @@ CoupGame/
 │   │   ├── General.cpp
 │   │   ├── Judge.cpp
 │   │   └── Merchant.cpp
-│   └── gui/                # Optional GUI components (SFML)
-│       ├── GameWindow.cpp
-│       └── GameWindow.hpp
+│   └── gui/               
+│       └── GameWindow.cpp
+│       
 ├── tests.cpp               # Complete doctest suite
 ├── main.cpp                # Entry point for GUI-enabled version
 ├── main_for_valgrind.cpp   # Headless simulation for Valgrind
@@ -140,8 +142,7 @@ If SFML is installed, you can build and run the GUI version:
 
 ```bash
 # Assuming SFML library paths are set in the Makefile
-make gui
-./CoupGameGUI
+make Main
 ```
 
 ---
@@ -152,8 +153,7 @@ make gui
 make clean
 ```
 
-Removes all build artifacts (`tests_val`, `game_val`, GUI binaries, object files).
+Removes all build artifacts
 
 ---
 
-Enjoy playing and experimenting with **Coup**! Contributions and improvements are welcome. 🚀
