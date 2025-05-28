@@ -1,5 +1,6 @@
-#pragma once
+
 // Email: realyoavperetz@gmail.com
+#pragma once
 #include "Player.hpp"
 
 namespace coup {

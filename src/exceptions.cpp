@@ -1,5 +1,5 @@
 // Email: realyoavperetz@gmail.com
-// Implementation of CoupException constructor.
+
 
 #include "exceptions.hpp"
 

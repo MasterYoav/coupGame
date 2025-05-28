@@ -1,4 +1,3 @@
-// GameWindow.hpp — header for GUI with log and winner dialog
 // Email: realyoavperetz@gmail.com
 
 #pragma once

@@ -1,5 +1,5 @@
 // Email: realyoavperetz@gmail.com
-// Implementation of Game class.
+
 
 #include "Game.hpp"
 #include "Player.hpp"

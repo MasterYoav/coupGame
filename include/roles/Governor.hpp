@@ -1,7 +1,6 @@
-#pragma once
-// Email: realyoavperetz@gmail.com
-// Governor role – extends Player. Gains +3 coins on tax and can undo tax actions.
 
+// Email: realyoavperetz@gmail.com
+#pragma once
 #include "Player.hpp"
 
 namespace coup {

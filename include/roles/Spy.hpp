@@ -1,7 +1,7 @@
-#pragma once
-// Email: realyoavperetz@gmail.com
-// Spy role – can inspect coins of another player and block their next arrest action.
 
+// Email: realyoavperetz@gmail.com
+
+#pragma once
 #include "Player.hpp"
 
 namespace coup {

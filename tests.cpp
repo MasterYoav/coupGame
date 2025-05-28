@@ -1,6 +1,4 @@
-// tests.cpp — Complete doctest suite for Coup
-// Build & run: make test
-
+// Email: realyoavperetz@gmail.com
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 

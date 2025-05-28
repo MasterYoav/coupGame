@@ -1,7 +1,6 @@
-#pragma once
-// Email: realyoavperetz@gmail.com
-// Merchant role – start-of-turn bonus, special arrest handling.
 
+// Email: realyoavperetz@gmail.com
+#pragma once
 #include "Player.hpp"
 
 namespace coup {

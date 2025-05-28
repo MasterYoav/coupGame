@@ -1,6 +1,6 @@
-#pragma once
 // Email: realyoavperetz@gmail.com
-// General role – can pay 5 coins to block a coup and refunds 1 coin if arrested.
+#pragma once
+
 
 #include "Player.hpp"
 
