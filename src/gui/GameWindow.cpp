@@ -1,4 +1,4 @@
-// GameWindow.cpp (fixed)
+// Email: realyoavperetz@gmail.com
 #include <iostream>
 #include <random>
 #include <unordered_set>

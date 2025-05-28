@@ -1,5 +1,5 @@
 // Email: realyoavperetz@gmail.com
-// Implementation of Governor role.
+
 
 #include "roles/Governor.hpp"
 #include "Game.hpp"

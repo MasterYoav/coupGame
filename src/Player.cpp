@@ -1,6 +1,5 @@
 // Email: realyoavperetz@gmail.com
-// Player.cpp – Implementation of Player with mandatory-coup in gather/tax/bribe,
-// bribe extra-action, no-repeat arrest, and sanction-block.
+
 
 #include "Player.hpp"
 #include "Game.hpp"
@@ -118,6 +117,7 @@ void Player::arrest(Player& target) {
         _game.register_action(this, ActionType::Arrest, &target, true);
         target.spend(1);
         gain(1);
+        if(target.role()== "General") {target.gain(1);}
         target.on_arrested(*this);
         _lastArrestTarget = &target;
         if (_extraActionAllowed) {
@@ -137,11 +137,9 @@ void Player::sanction(Player& target) {
         // no mandatory-coup here
         // cost 3
         spend(3);
-        _game.bank() += 3;
         // extra 1 if target is Judge
         if (target.role() == "Judge") {
             spend(1);
-            _game.bank() += 1;
         }
         target.on_sanction(*this);
         _game.register_action(this, ActionType::Sanction, &target, true);

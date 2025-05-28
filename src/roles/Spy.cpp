@@ -1,5 +1,5 @@
 // Email: realyoavperetz@gmail.com
-// Implementation of Spy role.
+
 
 #include "roles/Spy.hpp"
 #include "Game.hpp"

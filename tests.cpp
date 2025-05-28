@@ -106,23 +106,39 @@ TEST_CASE("3.1 Arrest cannot target same twice") {
     CHECK_THROWS_AS(s.arrest(v), CoupException);
 }
 
-TEST_CASE("3.2 Sanction blocks gather and tax for one turn") {
-    Game g;
-    Governor a(g, "A");
-    Spy      v(g, "V");
-    advanceUntil(g, a);
-    // fund A so he can pay the 3-coin sanction cost
-    a.tax();               
-    advanceUntil(g, a); // +3
-    a.sanction(v);
-    advanceUntil(g, v);
+TEST_CASE("3.2 Sanction blocks gather & tax for ONE FULL TURN only") {
+    Game      g;
+    Governor  a(g,"A");   // will sanction
+    Spy       v(g,"V");   // victim of sanction
+    Baron     x(g,"X");   // third player – provides an arrest target
+
+    /* fund players -------------------------------------------------- */
+    advanceUntil(g,x);            // X gathers 1 coin (needed for arrest)
+    x.gather();                   // X=1
+
+    advanceUntil(g,a);            // A gets 3 coins for sanction cost
+    a.tax();                      // A coins = 3
+
+    /* A sanctions V -------------------------------------------------- */
+    advanceUntil(g,a);
+    a.sanction(v);                // current player becomes V
+
+    /* V’s *first* turn – tax/gather must be blocked ----------------- */
+    REQUIRE(g.current_player() == &v);
     CHECK_THROWS_AS(v.gather(), CoupException);
-    CHECK_THROWS_AS(v.tax(),    CoupException);
-    // next turn the block expires
-    advanceUntil(g, a);
-    advanceUntil(g, v);
-    CHECK_NOTHROW(v.gather());
+    CHECK_THROWS_AS(v.tax   (), CoupException);
+
+    /* V does a *legal* action (arrest) to finish the turn ------------ */
+    REQUIRE_NOTHROW(v.arrest(x));       // steals the 1 coin from X
+
+    /* now cycle back to V again -------------------------------------- */
+    advanceUntil(g,v);            // A → X → back to V
+
+    /* sanction should be cleared; gather/tax succeed ----------------- */
+    CHECK_NOTHROW(v.gather());    // NO throw now
 }
+
+
 
 TEST_CASE("3.3 Baron gets +1 compensation on sanction") {
     Game g;
@@ -208,25 +224,39 @@ TEST_CASE("5.1 Coup costs 7 and eliminates player") {
     CHECK(g.playerObjects().size() == 1);
 }
 
-TEST_CASE("5.2 General can block a coup and gets no refund") {
-    Game g;
-    Governor atk(g, "A");
-    General  def(g, "D");
-    advanceUntil(g, atk);
-    // fund A to exactly 7: two taxes (+6) and one gather (+1)
-    atk.tax();    advanceUntil(g, atk);
-    atk.tax();    advanceUntil(g, atk);
-    atk.gather(); advanceUntil(g, atk);
-    // fund def so he has >=5
-    advanceUntil(g, def);
-    for(int i=0;i<3;++i){ def.tax(); advanceUntil(g, def); }
-    // back to attacker’s turn
-    advanceUntil(g, atk);
-    atk.coup(def);
-    // D should still be in the game (block succeeded)
-    auto objs = g.playerObjects();
-    CHECK(std::find(objs.begin(), objs.end(), &def) != objs.end());
+TEST_CASE("5.2 General can block a coup (pays 5, attacker still pays 7)") {
+    Game      g;
+    General   def(g,"D");   // defender / blocker
+    Governor  atk(g,"A");   // attacker
+    
+
+    /* ---- Stage 1: fund defender enough to block & attacker enough to coup*/\
+    def.tax(); atk.gather();  // def=2, atk=1
+
+    /* ---- Stage 2: fund attacker enough to coup and KEEP turn --------- */
+    def.gather(); // (def=3)
+    atk.tax();   def.gather();   // (def=4 atk=4)
+    atk.tax();   def.gather();   // (def=5 atk=7)
+    REQUIRE(g.current_player() == &atk);
+   
+    /* ---- Stage 3: attempt coup – defender blocks ----------------- */
+    
+    CHECK(atk.coins() == 7);
+    CHECK(def.coins() == 5);
+    atk.coup(def); 
+    CHECK(atk.coins() == 0);
+    CHECK(g.current_player() == &atk);
+    def.block_coup(def);
+
+    /* check that defender still alive ------------------------------------------- */
+    auto alive = g.playerObjects();
+    CHECK(std::find(alive.begin(), alive.end(), &def) != alive.end());
+
+    /* coin balances after payments ----------------------------------- */
+    CHECK(atk.coins() == 0);   // paid 7
+    CHECK(def.coins() == 0);   // 
 }
+
 
 TEST_CASE("5.3 must coup at 10+ coins") {
     Game g;
@@ -256,7 +286,64 @@ TEST_CASE("6.1 Judge cancels bribe and other player still lose 4 coins") {
     // S spent 4 and does not get it back
     CHECK(s.coins() == 2);  //6-4 =2
 }
+/* 6.2 Spy blocks an Arrest for one turn -----------------------------*/
+TEST_CASE("6.2 Spy can block an arrest against him") {
+    Game g;
+    Spy      spy(g,"S");
+    Governor atk(g,"A");
 
+    advanceUntil(g, atk);
+    atk.gather();               // fund attacker 1
+    advanceUntil(g, spy);
+    spy.block_arrest(atk);      // reaction flag set on attacker
+
+    advanceUntil(g, atk);
+    REQUIRE_THROWS_AS(atk.arrest(spy), CoupException);   // blocked
+    // next turn, arrest allowed again
+    advanceUntil(g, spy);
+    advanceUntil(g, atk);
+    REQUIRE_NOTHROW(atk.arrest(spy));
+}
+
+/* 6.3 General refunded when arrested --------------------------------*/
+TEST_CASE("6.3 General regains coin when arrested") {
+    Game g;
+    Spy      s(g,"S");
+    General  gen(g,"G");
+    advanceUntil(g, gen); //s=1
+    gen.gather();               // gen= 1
+    s.arrest(gen); advanceUntil(g,gen);            // steal 1 then General ,but- refund rule should still keep him 1
+    CHECK(gen.coins() == 1);    // got it back
+    CHECK(s.coins()  == 2);     // did NOT keep it
+}
+
+/* 6.4 Merchant pays 2 to bank when arrested -------------------------*/
+TEST_CASE("6.4 Merchant loses 2 to bank when arrested") {
+    Game g;
+    Spy       s(g,"S");
+    Merchant  m(g,"M");
+    advanceUntil(g, m); 
+    m.tax();                    // m +2
+    advanceUntil(g, s);
+    s.arrest(m);                // deduct 2 from Merchant 
+    CHECK(m.coins() == 0);      //Merchant have 0
+    CHECK(s.coins() == 1);      // Spy does not gain
+}
+
+/* 6.5 Judge extra-penalty when sanctioned ---------------------------*/
+TEST_CASE("6.5 Sanctioning a Judge costs attacker 4") {
+    Game g;
+    Governor atk(g,"A");
+    Judge    j(g,"J");
+    advanceUntil(g, atk);
+    atk.tax();  // +3 coins exactly
+    CHECK_THROWS_AS(atk.sanction(j), CoupException); // needs 4
+    advanceUntil(g, atk);
+    atk.tax();  // now 5
+    advanceUntil(g, atk);
+    atk.sanction(j);   // pays 4 to bank
+    CHECK(atk.coins() == 1);
+}
 //────────────────────────────────────────────────────────
 // 7. Winner & Action Log
 //────────────────────────────────────────────────────────

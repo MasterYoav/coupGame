@@ -1,6 +1,6 @@
-#pragma once
 // Email: realyoavperetz@gmail.com
-// Defines basic action types and an optional log record used by Game.
+#pragma once
+
 
 #include <cstddef>
 

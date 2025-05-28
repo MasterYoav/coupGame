@@ -1,6 +1,4 @@
 // Email: realyoavperetz@gmail.com
-// This header defines the generic exception class used by the Coup game engine.
-// All rule‑breaking runtime errors should be reported via CoupException.
 
 #pragma once
 
